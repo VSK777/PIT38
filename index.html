@@ -3,113 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIT-38 Crypto Secure Sync</title>
+    <title>PIT-38 Crypto Pro Cloud</title>
+    
     <link rel="apple-touch-icon" href="https://cryptologos.cc/logos/tether-usdt-logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         
-        /* Стилі логіна */
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44, 62, 80, 0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .login-box { background: white; padding: 30px; border-radius: 12px; width: 320px; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        /* Login Overlay */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44, 62, 80, 0.98); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; width: 340px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        .sync-status { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #2c3e50; color: white; border-radius: 8px; margin-bottom: 20px; font-size: 12px; }
+        /* Status Bar */
+        .sync-status { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; background: #2c3e50; color: white; border-radius: 8px; margin-bottom: 20px; font-size: 11px; }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .online { background-color: #2ecc71; }
         .offline { background-color: #e74c3c; }
 
-        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; }
-        .btn-danger { background-color: #e74c3c; padding: 5px 8px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .form-group { margin-top: 15px; }
+        label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        .btn-main:disabled { background-color: #bdc3c7; }
+        .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        
+        .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
         th { background-color: #f8f9fa; }
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
+        .prefilled-tag { font-size: 9px; background: #95a5a6; color: white; padding: 2px 4px; border-radius: 3px; vertical-align: middle; }
     </style>
 </head>
 <body>
 
-<!-- ВІКНО ЛОГІНА -->
+<!-- Вікно логіна -->
 <div id="loginOverlay">
     <div class="login-box">
-        <h3>🔐 Logowanie Cloud</h3>
-        <p style="font-size: 12px; color: #7f8c8d;">Wprowadź dane ze swoich screenów</p>
-        <input type="password" id="userToken" placeholder="GitHub Personal Token">
+        <h3>🔐 Synchronizacja Cloud</h3>
+        <p style="font-size: 12px; color: #7f8c8d;">Wprowadź dane z GitHub, aby uzyskać dostęp do swoich transakcji.</p>
+        <input type="password" id="userToken" placeholder="GitHub Personal Token (ghp_...)">
         <input type="text" id="userGistId" placeholder="Gist ID">
-        <button onclick="login()" class="btn-main">Zaloguj i synchronizuj</button>
+        <button onclick="login()" class="btn-main">Zaloguj i połącz</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sync-status">
         <div><span id="dot" class="status-dot offline"></span> <span id="statusText">Brak połączenia</span></div>
-        <button onclick="logout()" style="background:none; border:1px solid #fff; color:#fff; font-size:10px; cursor:pointer; border-radius:4px;">Wyloguj</button>
+        <div>
+            <span id="lastSync" style="margin-right: 10px; opacity: 0.7;"></span>
+            <button onclick="logout()" style="background:none; border:1px solid #fff; color:#fff; font-size:9px; cursor:pointer; border-radius:4px; padding: 2px 5px;">Wyloguj</button>
+        </div>
     </div>
 
     <h2>Dziennik PIT-38 Krypto</h2>
-
-    <div style="display: flex; gap: 5px; margin-top: 15px;">
-        <select id="type" style="flex: 1; padding: 10px;"><option value="KOSZT">KOSZT</option><option value="PRZYCHÓD">PRZYCHÓD</option></select>
-        <input type="number" id="amount" placeholder="Kwota" style="flex: 1; padding: 10px;">
-        <input type="date" id="date" style="flex: 1; padding: 10px;">
-        <button onclick="addTransaction()" id="addBtn" style="padding: 10px; background: #3498db; color: white; border: none; border-radius: 6px;">+</button>
+    
+    <div class="alert-info">
+        Dane za lata <b>2023-2025</b> są wbudowane. Nowe transakcje są synchronizowane z Twoim Gist.
     </div>
 
-    <h3 style="margin-top: 30px;">Podsumowanie</h3>
+    <div class="form-group">
+        <label>Typ operacji:</label>
+        <select id="type">
+            <option value="KOSZT">KOSZT (Zakup / Wydatki)</option>
+            <option value="PRZYCHÓD">PRZYCHÓD (Sprzedaż / Dochód)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Waluta:</label>
+        <select id="currency">
+            <option value="USD">USD (USDT / USDC)</option>
+            <option value="EUR">EUR</option>
+            <option value="PLN">PLN</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Kwota:</label>
+        <input type="number" id="amount" placeholder="np. 500.00" step="0.01">
+    </div>
+
+    <div class="form-group">
+        <label>Data transakcji:</label>
+        <input type="date" id="date">
+    </div>
+
+    <button onclick="addTransaction()" id="addBtn" class="btn-main">Dodaj transakcję</button>
+
+    <h3 style="margin-top: 40px; color: #e67e22;">Podsumowanie roczne (PIT-38)</h3>
     <table>
-        <thead><tr><th>Rok</th><th>Dochód</th><th>Podatek</th></tr></thead>
-        <tbody id="summaryBody"></tbody>
+        <thead>
+            <tr>
+                <th>Rok</th>
+                <th>Przychody</th>
+                <th>Koszty</th>
+                <th>Koszty lat ub.</th>
+                <th>DOCHÓD</th>
+                <th>Podatek (19%)</th>
+            </tr>
+        </thead>
+        <tbody id="yearly-summary-table"></tbody>
     </table>
 
-    <h3 style="margin-top: 30px;">Historia</h3>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 40px;">
+        <h3 style="margin: 0; font-size: 18px;">Historia transakcji</h3>
+        <select id="yearFilter" onchange="updateUI()" style="width: 140px;">
+            <option value="all">Wszystkie lata</option>
+        </select>
+    </div>
+
     <table>
-        <tbody id="historyBody"></tbody>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Typ</th>
+                <th>Kwota</th>
+                <th>Kurs NBP</th>
+                <th>Wartość (PLN)</th>
+                <th>Akcja</th>
+            </tr>
+        </thead>
+        <tbody id="history-table"></tbody>
     </table>
 </div>
 
 <script>
-    const CONFIG_KEY = 'pit38_auth';
-    const STORAGE_KEY = 'pit38_local_data';
+    const CONFIG_KEY = 'pit38_auth_v4';
+    const STORAGE_KEY = 'pit38_cloud_data_v4';
     const GIST_FILENAME = 'gistfile1.txt';
 
     const prefilledData = [
-        { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', plnValue: 143301.90, prefilled: true },
-        { id: 'p2', date: '2023-12-31', type: 'KOSZT', plnValue: 151672.70, prefilled: true },
-        { id: 'p3', date: '2024-12-31', type: 'KOSZT', plnValue: 22944.37, prefilled: true }
+        { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
+        { id: 'p2', date: '2023-12-31', type: 'KOSZT', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
+        { id: 'p3', date: '2024-12-31', type: 'KOSZT', currency: 'PLN', amount: 22944.37, rate: 1, plnValue: 22944.37, prefilled: true },
+        { id: 'p4', date: '2025-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 1185.30, rate: 1, plnValue: 1185.30, prefilled: true },
+        { id: 'p5', date: '2025-12-31', type: 'KOSZT', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
     ];
 
     let userHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-    // --- АВТЕНТИФІКАЦІЯ ---
+    // --- СИНХРОНІЗАЦІЯ ---
 
     function login() {
         const token = document.getElementById('userToken').value;
         const id = document.getElementById('userGistId').value;
-        if (!token || !id) return alert("Wypełnij oba pola!");
-
+        if (!token || !id) return alert("Wprowadź token i ID!");
         localStorage.setItem(CONFIG_KEY, JSON.stringify({ token, id }));
         document.getElementById('loginOverlay').style.display = 'none';
         sync('pull');
     }
 
     function logout() {
-        if (confirm("Wylogować i wyczyścić dane logowania?")) {
+        if (confirm("Wylogować i usunąć klucze dostępu z tego urządzenia?")) {
             localStorage.removeItem(CONFIG_KEY);
             location.reload();
         }
     }
-
-    function checkAuth() {
-        const auth = JSON.parse(localStorage.getItem(CONFIG_KEY));
-        if (auth) {
-            document.getElementById('loginOverlay').style.display = 'none';
-            sync('pull');
-        }
-    }
-
-    // --- СИНХРОНІЗАЦІЯ ---
 
     async function sync(action = 'push') {
         const auth = JSON.parse(localStorage.getItem(CONFIG_KEY));
@@ -119,7 +177,7 @@
         const dot = document.getElementById('dot');
 
         try {
-            statusText.innerText = "Sync...";
+            statusText.innerText = action === 'push' ? "Wysyłanie..." : "Pobieranie...";
             if (action === 'push') {
                 await fetch(`https://api.github.com/gists/${auth.id}`, {
                     method: 'PATCH',
@@ -132,13 +190,14 @@
                 });
                 const data = await res.json();
                 const content = data.files[GIST_FILENAME].content;
-                userHistory = content === "[]" ? [] : JSON.parse(content);
+                userHistory = content === "[]" || !content ? [] : JSON.parse(content);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             }
             statusText.innerText = "Online";
             dot.className = "status-dot online";
+            document.getElementById('lastSync').innerText = new Date().toLocaleTimeString();
         } catch (e) {
-            statusText.innerText = "Błąd Cloud";
+            statusText.innerText = "Błąd synchronizacji";
             dot.className = "status-dot offline";
         }
         updateUI();
@@ -146,59 +205,126 @@
 
     // --- ЛОГІКА ДОДАТКУ ---
 
+    async function getNBPRate(currency, dateStr) {
+        if (currency === 'PLN') return { rate: 1.00, date: dateStr };
+        let date = new Date(dateStr);
+        for (let i = 0; i < 7; i++) {
+            date.setDate(date.getDate() - 1);
+            let checkDate = date.toISOString().split('T')[0];
+            let url = `https://api.nbp.pl/api/exchangerates/rates/a/${currency}/${checkDate}/?format=json`;
+            try {
+                let response = await fetch(url);
+                if (response.ok) {
+                    let data = await response.json();
+                    return { rate: data.rates[0].mid, date: checkDate };
+                }
+            } catch (e) {}
+        }
+        return null;
+    }
+
     async function addTransaction() {
         const amount = parseFloat(document.getElementById('amount').value);
         const dateVal = document.getElementById('date').value;
+        const currency = document.getElementById('currency').value;
+        const type = document.getElementById('type').value;
+        const btn = document.getElementById('addBtn');
+
         if (!amount || !dateVal) return;
 
-        userHistory.push({
-            id: Date.now(), date: dateVal, type: document.getElementById('type').value,
-            plnValue: amount 
-        });
+        btn.innerText = "Pobieram NBP..."; btn.disabled = true;
+        const rateData = await getNBPRate(currency, dateVal);
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
-        await sync('push');
-        document.getElementById('amount').value = '';
+        if (rateData) {
+            userHistory.push({
+                id: Date.now(), date: dateVal, type: type, currency: currency, 
+                amount: amount, rate: rateData.rate, 
+                plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
+                prefilled: false
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
+            await sync('push');
+            document.getElementById('amount').value = '';
+        }
+        btn.innerText = "Dodaj transakcję"; btn.disabled = false;
     }
 
     async function deleteTransaction(id) {
-        userHistory = userHistory.filter(t => t.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
-        await sync('push');
+        if (confirm("Usunąć transakcję?")) {
+            userHistory = userHistory.filter(t => t.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
+            await sync('push');
+        }
     }
 
     function updateUI() {
-        const full = [...prefilledData, ...userHistory];
-        const hBody = document.getElementById('historyBody');
-        hBody.innerHTML = '';
-
-        let years = {};
-        full.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            hBody.innerHTML += `<tr>
-                <td>${t.date}</td>
-                <td class="${t.type==='KOSZT'?'neg':'pos'}">${t.type}</td>
-                <td>${t.plnValue.toFixed(2)}</td>
-                <td>${t.prefilled ? '-' : `<button class="btn-danger" onclick="deleteTransaction(${t.id})">X</button>`}</td>
-            </tr>`;
-            
-            let y = t.date.substring(0,4);
-            if(!years[y]) years[y] = { p:0, k:0 };
-            if(t.type==='PRZYCHÓD') years[y].p += t.plnValue;
-            else years[y].k += t.plnValue;
+        const history = [...prefilledData, ...userHistory];
+        const summaryTbody = document.getElementById('yearly-summary-table');
+        summaryTbody.innerHTML = '';
+        
+        let yearsMap = {};
+        history.forEach(t => {
+            let y = t.date.substring(0, 4);
+            if (!yearsMap[y]) yearsMap[y] = { income: 0, cost: 0 };
+            if (t.type === 'PRZYCHÓD') yearsMap[y].income += t.plnValue;
+            if (t.type === 'KOSZT') yearsMap[y].cost += t.plnValue;
         });
 
-        const sBody = document.getElementById('summaryBody');
-        sBody.innerHTML = '';
-        let lossCarry = 0;
-        Object.keys(years).sort().forEach(y => {
-            let res = years[y].p - years[y].k - lossCarry;
-            let tax = res > 0 ? res * 0.19 : 0;
-            sBody.innerHTML += `<tr><td>${y}</td><td class="${res<0?'neg':'pos'}">${res.toFixed(2)}</td><td>${tax.toFixed(2)}</td></tr>`;
-            lossCarry = res < 0 ? Math.abs(res) : 0;
+        let sortedYears = Object.keys(yearsMap).sort();
+        let lossCF = 0;
+
+        sortedYears.forEach(year => {
+            let p = yearsMap[year].income;
+            let k = yearsMap[year].cost;
+            let result = p - k - lossCF;
+            let tax = result > 0 ? (result * 0.19) : 0;
+            summaryTbody.innerHTML += `
+                <tr>
+                    <td><b>${year}</b></td>
+                    <td>${p.toFixed(2)}</td>
+                    <td>${k.toFixed(2)}</td>
+                    <td>${lossCF.toFixed(2)}</td>
+                    <td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td>
+                    <td>${tax.toFixed(2)}</td>
+                </tr>
+            `;
+            lossCF = result < 0 ? Math.abs(result) : 0;
+        });
+
+        const filterSelect = document.getElementById('yearFilter');
+        const currentFilter = filterSelect.value || 'all';
+        filterSelect.innerHTML = '<option value="all">Wszystkie lata</option>';
+        sortedYears.forEach(y => {
+            filterSelect.innerHTML += `<option value="${y}" ${y === currentFilter ? 'selected' : ''}>${y}</option>`;
+        });
+
+        const historyTbody = document.getElementById('history-table');
+        historyTbody.innerHTML = '';
+        const filtered = currentFilter === 'all' ? history : history.filter(t => t.date.startsWith(currentFilter));
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            historyTbody.innerHTML += `
+                <tr>
+                    <td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td>
+                    <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
+                    <td>${t.amount} ${t.currency}</td>
+                    <td>${t.rate === 1 ? '-' : t.rate}</td>
+                    <td><b>${t.plnValue.toFixed(2)}</b></td>
+                    <td>${t.prefilled ? '-' : `<button class="btn-danger" onclick="deleteTransaction(${t.id})">Usuń</button>`}</td>
+                </tr>
+            `;
         });
     }
 
-    window.onload = checkAuth;
+    // Перевірка авторизації при завантаженні
+    window.onload = () => {
+        const auth = JSON.parse(localStorage.getItem(CONFIG_KEY));
+        if (auth) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            sync('pull');
+        }
+        updateUI();
+    };
 </script>
 </body>
 </html>
