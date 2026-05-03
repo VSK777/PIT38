@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIT-38 Crypto Pro</title>
+    <title>PIT-38 Crypto Pro (Cloud Sync)</title>
     
-    <!-- Ikonka USDT dla iPada -->
-    <link rel="apple-touch-icon" href="https://cryptologos.cc/logos/tether-usdt-logo.png">
-    <meta name="apple-mobile-web-app-title" content="PIT-38">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Підключення бібліотеки Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
@@ -20,7 +17,6 @@
         select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
         .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        
         .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
@@ -36,7 +32,7 @@
     <h2>Dziennik PIT-38 Krypto</h2>
     
     <div class="alert-info">
-        Dane za lata <b>2023-2025</b> zostały załadowane automatycznie na podstawie Twoich obliczeń.
+        <b>Хмарна синхронізація активована.</b> Дані зберігаються в Supabase і доступні з усіх твоїх пристроїв.
     </div>
 
     <div class="form-group">
@@ -106,6 +102,11 @@
 </div>
 
 <script>
+    // КОНФІГУРАЦІЯ (Вже вставлено з твоїх скріншотів)
+    const SUPABASE_URL = 'https://sugtnffonquakbgkhqlf.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_vBJcXrBrBXA1QRuYDFcr4w_ctTZQU000Wms000'; 
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const prefilledData = [
         { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
         { id: 'p2', date: '2023-12-31', type: 'KOSZT', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
@@ -114,9 +115,15 @@
         { id: 'p5', date: '2025-12-31', type: 'KOSZT', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
     ];
 
-    let userHistory = JSON.parse(localStorage.getItem('pit38_final_storage_v3')) || [];
-    
-    function getFullHistory() { return [...prefilledData, ...userHistory]; }
+    let userHistory = [];
+
+    async function loadData() {
+        const { data, error } = await _supabase.from('transactions').select('*');
+        if (!error) {
+            userHistory = data.map(t => ({ ...t, plnValue: t.pln_value }));
+            updateUI();
+        }
+    }
 
     async function getNBPRate(currency, dateStr) {
         if (currency === 'PLN') return { rate: 1.00, date: dateStr };
@@ -145,38 +152,38 @@
 
         if (!amount || !dateVal) return;
 
-        btn.innerText = "Pobieram NBP..."; btn.disabled = true;
+        btn.innerText = "Зберігаю..."; btn.disabled = true;
         const rateData = await getNBPRate(currency, dateVal);
 
         if (rateData) {
-            userHistory.push({
-                id: Date.now(), date: dateVal, nbpDate: rateData.date,
-                type: type, currency: currency, amount: amount,
-                rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
-                prefilled: false
-            });
-            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
-            updateUI();
-            document.getElementById('amount').value = '';
+            const { error } = await _supabase.from('transactions').insert([{
+                date: dateVal, nbp_date: rateData.date, type: type,
+                currency: currency, amount: amount, rate: rateData.rate,
+                pln_value: parseFloat((amount * rateData.rate).toFixed(2))
+            }]);
+            
+            if (!error) {
+                await loadData();
+                document.getElementById('amount').value = '';
+            }
         }
         btn.innerText = "Dodaj transakcję"; btn.disabled = false;
     }
 
-    function deleteTransaction(id) {
-        if (confirm("Czy na pewno chcesz usunąć tę transakcję?")) {
-            userHistory = userHistory.filter(t => t.id !== id);
-            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
-            updateUI();
+    async function deleteTransaction(id) {
+        if (confirm("Usunąć wpis?")) {
+            const { error } = await _supabase.from('transactions').delete().eq('id', id);
+            if (!error) await loadData();
         }
     }
 
     function updateUI() {
-        const history = getFullHistory();
+        const fullHistory = [...prefilledData, ...userHistory];
         const summaryTbody = document.getElementById('yearly-summary-table');
         summaryTbody.innerHTML = '';
         
         let yearsMap = {};
-        history.forEach(t => {
+        fullHistory.forEach(t => {
             let y = t.date.substring(0, 4);
             if (!yearsMap[y]) yearsMap[y] = { income: 0, cost: 0 };
             if (t.type === 'PRZYCHÓD') yearsMap[y].income += t.plnValue;
@@ -207,7 +214,7 @@
         const historyTbody = document.getElementById('history-table');
         historyTbody.innerHTML = '';
         const filter = document.getElementById('yearFilter').value;
-        const filtered = filter === 'all' ? history : history.filter(t => t.date.startsWith(filter));
+        const filtered = filter === 'all' ? fullHistory : fullHistory.filter(t => t.date.startsWith(filter));
 
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
             historyTbody.innerHTML += `
@@ -222,7 +229,8 @@
             `;
         });
     }
-    window.onload = updateUI;
+
+    window.onload = loadData;
 </script>
 </body>
 </html>
