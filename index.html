@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PIT-38 Crypto Pro (Cloud Sync)</title>
     
-    <!-- Підключення бібліотеки Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -16,6 +15,7 @@
         label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
         select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
         .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
@@ -32,7 +32,7 @@
     <h2>Dziennik PIT-38 Krypto</h2>
     
     <div class="alert-info">
-        <b>Хмарна синхронізація активована.</b> Дані зберігаються в Supabase і доступні з усіх твоїх пристроїв.
+        <b>Хмарна синхронізація активована.</b> Дані до 2026 року збережені.
     </div>
 
     <div class="form-group">
@@ -102,11 +102,13 @@
 </div>
 
 <script>
-    // КОНФІГУРАЦІЯ (Вже вставлено з твоїх скріншотів)
+    // КОНФІГУРАЦІЯ
     const SUPABASE_URL = 'https://sugtnffonquakbgkhqlf.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_vBJcXrBrBXA1QRuYDFcr4w_ctTZQU000Wms000'; 
+    const SUPABASE_KEY = 'Sb_publishable_vBJcrXbrBXA1QRuYDFcr4w_ctTZQ7py'; 
+    
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Твої збережені дані до 2026 року
     const prefilledData = [
         { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
         { id: 'p2', date: '2023-12-31', type: 'KOSZT', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
@@ -118,10 +120,13 @@
     let userHistory = [];
 
     async function loadData() {
-        const { data, error } = await _supabase.from('transactions').select('*');
-        if (!error) {
+        try {
+            const { data, error } = await _supabase.from('transactions').select('*');
+            if (error) throw error;
             userHistory = data.map(t => ({ ...t, plnValue: t.pln_value }));
             updateUI();
+        } catch (e) {
+            console.error("Помилка завантаження:", e.message);
         }
     }
 
@@ -151,27 +156,31 @@
         const btn = document.getElementById('addBtn');
 
         if (!amount || !dateVal) return;
-
         btn.innerText = "Зберігаю..."; btn.disabled = true;
-        const rateData = await getNBPRate(currency, dateVal);
 
-        if (rateData) {
+        try {
+            const rateData = await getNBPRate(currency, dateVal);
+            if (!rateData) throw new Error("Не вдалося отримати курс NBP.");
+
             const { error } = await _supabase.from('transactions').insert([{
                 date: dateVal, nbp_date: rateData.date, type: type,
                 currency: currency, amount: amount, rate: rateData.rate,
                 pln_value: parseFloat((amount * rateData.rate).toFixed(2))
             }]);
             
-            if (!error) {
-                await loadData();
-                document.getElementById('amount').value = '';
-            }
+            if (error) throw error;
+            await loadData();
+            document.getElementById('amount').value = '';
+            alert("Успішно збережено!");
+        } catch (e) {
+            alert("Помилка: " + e.message + "\n\nШвидше за все, ключ АПІ неповний. Скопіюй його кнопкою Copy у Supabase!");
+        } finally {
+            btn.innerText = "Dodaj transakcję"; btn.disabled = false;
         }
-        btn.innerText = "Dodaj transakcję"; btn.disabled = false;
     }
 
     async function deleteTransaction(id) {
-        if (confirm("Usunąć wpis?")) {
+        if (confirm("Видалити запис?")) {
             const { error } = await _supabase.from('transactions').delete().eq('id', id);
             if (!error) await loadData();
         }
@@ -179,9 +188,16 @@
 
     function updateUI() {
         const fullHistory = [...prefilledData, ...userHistory];
+        const yearFilter = document.getElementById('yearFilter');
+        const currentYear = yearFilter.value;
+        const years = [...new Set(fullHistory.map(t => t.date.substring(0, 4)))].sort();
+        
+        yearFilter.innerHTML = '<option value="all">Wszystkie lata</option>';
+        years.forEach(y => { yearFilter.innerHTML += `<option value="${y}">${y}</option>`; });
+        yearFilter.value = currentYear;
+
         const summaryTbody = document.getElementById('yearly-summary-table');
         summaryTbody.innerHTML = '';
-        
         let yearsMap = {};
         fullHistory.forEach(t => {
             let y = t.date.substring(0, 4);
@@ -190,30 +206,26 @@
             if (t.type === 'KOSZT') yearsMap[y].cost += t.plnValue;
         });
 
-        let sortedYears = Object.keys(yearsMap).sort();
-        let lossCF = 0;
-
-        sortedYears.forEach(year => {
+        Object.keys(yearsMap).sort().forEach(year => {
             let p = yearsMap[year].income;
             let k = yearsMap[year].cost;
-            let result = p - k - lossCF;
+            let result = p - k;
             let tax = result > 0 ? (result * 0.19) : 0;
             summaryTbody.innerHTML += `
                 <tr>
                     <td><b>${year}</b></td>
                     <td>${p.toFixed(2)}</td>
                     <td>${k.toFixed(2)}</td>
-                    <td>${lossCF.toFixed(2)}</td>
+                    <td>-</td>
                     <td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td>
                     <td>${tax.toFixed(2)}</td>
                 </tr>
             `;
-            lossCF = result < 0 ? Math.abs(result) : 0;
         });
 
         const historyTbody = document.getElementById('history-table');
         historyTbody.innerHTML = '';
-        const filter = document.getElementById('yearFilter').value;
+        const filter = yearFilter.value;
         const filtered = filter === 'all' ? fullHistory : fullHistory.filter(t => t.date.startsWith(filter));
 
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
