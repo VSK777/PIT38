@@ -6,152 +6,118 @@
     <title>PIT-38 Crypto Pro</title>
     
     <link rel="apple-touch-icon" href="https://cryptologos.cc/logos/tether-usdt-logo.png">
-    <meta name="apple-mobile-web-app-title" content="PIT-38">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        body { font-family: '-apple-system', BlinkMacSystemFont, sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        .form-group { margin-top: 15px; }
-        label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
-        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
-        .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .backup-section { display: flex; gap: 10px; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccd1d9; }
-        .btn-secondary { flex: 1; background-color: #7f8c8d; color: white; border: none; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; }
-        .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
+        /* Базові стилі */
+        body { font-family: '-apple-system', sans-serif; padding: 10px; background-color: #f4f7f6; color: #333; margin: 0; }
+        .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        
+        /* Форма додавання */
+        .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        .form-group { flex: 1; min-width: 140px; }
+        label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; font-size: 16px; box-sizing: border-box; }
+        
+        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+        .btn-danger { background-color: #e74c3c; padding: 8px 12px; font-size: 12px; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        
+        /* Кнопки iCloud */
+        .backup-section { display: flex; gap: 8px; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccd1d9; }
+        .btn-secondary { flex: 1; background-color: #7f8c8d; color: white; border: none; padding: 10px; font-size: 12px; border-radius: 6px; cursor: pointer; }
+
+        /* Таблиці та адаптивність */
+        .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 600px; /* Гарантує, що таблиця не стиснеться в кашу */ }
+        th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background-color: #f8f9fa; font-weight: 700; color: #7f8c8d; text-transform: uppercase; font-size: 11px; }
+        
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
-        .prefilled-tag { font-size: 9px; background: #95a5a6; color: white; padding: 2px 4px; border-radius: 3px; vertical-align: middle; }
+
+        /* Мобільні налаштування */
+        @media (max-width: 600px) {
+            body { padding: 5px; }
+            .container { padding: 15px; border-radius: 0; }
+            .form-group { min-width: 100%; } /* Поля в стовпчик на мобілці */
+            th, td { padding: 8px 4px; font-size: 12px; }
+            .btn-main { padding: 12px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Dziennik PIT-38 Krypto</h2>
+    <h2>PIT-38 Crypto Pro</h2>
     
-    <div class="alert-info">
-        Wczytaj plik <b>JSON z iCloud</b>, aby zobaczyć historię transakcji. Nowe wpisy są automatycznie zapamiętywane.
-    </div>
-
-    <div class="form-group">
-        <label>Typ operacji:</label>
-        <select id="type">
-            <option value="KOSZT">KOSZT (Zakup / Wydatki)</option>
-            <option value="PRZYCHÓD">PRZYCHÓD (Sprzedaż / Dochód)</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Waluta:</label>
-        <select id="currency">
-            <option value="USD">USD (USDT / USDC)</option>
-            <option value="EUR">EUR</option>
-            <option value="PLN">PLN</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Kwota:</label>
-        <input type="number" id="amount" placeholder="0.00" step="0.01">
-    </div>
-
-    <div class="form-group">
-        <label>Data transakcji:</label>
-        <input type="date" id="date">
+    <!-- Форма додавання -->
+    <div class="form-row">
+        <div class="form-group">
+            <label>Typ:</label>
+            <select id="type">
+                <option value="KOSZT">KOSZT</option>
+                <option value="PRZYCHÓD">PRZYCHÓD</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Waluta:</label>
+            <select id="currency">
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="PLN">PLN</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Kwota:</label>
+            <input type="number" id="amount" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+            <label>Data:</label>
+            <input type="date" id="date">
+        </div>
     </div>
 
     <button onclick="addTransaction()" id="addBtn" class="btn-main">Dodaj transakcję</button>
 
     <div class="backup-section">
-        <button onclick="exportData()" class="btn-secondary">📤 Eksportuj (Kopia do iCloud)</button>
-        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Importuj z iCloud</button>
-        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+        <button onclick="exportData()" class="btn-secondary">📤 Eksportuj</button>
+        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Importuj</button>
+        <input type="file" id="importFile" style="display:none" onchange="importData(event)">
     </div>
 
-    <h3 style="margin-top: 40px; color: #e67e22;">Podsumowanie roczne (PIT-38)</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Rok</th>
-                <th>Przychody</th>
-                <th>Koszty</th>
-                <th>Koszty lat ub.</th>
-                <th>DOCHÓD</th>
-                <th>Podatek (19%)</th>
-            </tr>
-        </thead>
-        <tbody id="yearly-summary-table"></tbody>
-    </table>
-
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 40px;">
-        <h3 style="margin: 0; font-size: 18px;">Historia transakcji</h3>
-        <select id="yearFilter" onchange="updateUI()" style="width: 140px;">
-            <option value="all">Wszystkie lata</option>
-        </select>
+    <h3>Podsumowanie roczne</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Rok</th><th>Przychod</th><th>Koszt</th><th>Dochód</th><th>Podatek</th></tr>
+            </thead>
+            <tbody id="yearly-summary-table"></tbody>
+        </table>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Typ</th>
-                <th>Kwota</th>
-                <th>Kurs NBP</th>
-                <th>Wartość (PLN)</th>
-                <th>Akcja</th>
-            </tr>
-        </thead>
-        <tbody id="history-table"></tbody>
-    </table>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 30px;">
+        <h3 style="margin: 0;">Historia</h3>
+        <select id="yearFilter" onchange="updateUI()" style="width: 120px; font-size: 12px; padding: 5px;"></select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Data</th><th>Typ</th><th>Kwota</th><th>Kurs</th><th>PLN</th><th>Akcja</th></tr>
+            </thead>
+            <tbody id="history-table"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'pit38_final_storage_v3';
+    const STORAGE_KEY = 'pit38_v5_final';
     let userHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-    function exportData() {
-        if (userHistory.length === 0) {
-            alert("Brak danych do eksportu.");
-            return;
-        }
-        const dataStr = JSON.stringify(userHistory, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `pit38_history_${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-    }
-
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const imported = JSON.parse(e.target.result);
-                if (Array.isArray(imported)) {
-                    if (confirm("Zaimportować dane z pliku? (Istniejące wpisy zostaną zachowane)")) {
-                        const existingIds = userHistory.map(t => String(t.id));
-                        const newEntries = imported.filter(t => !existingIds.includes(String(t.id)));
-                        userHistory = [...userHistory, ...newEntries];
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
-                        updateUI();
-                    }
-                }
-            } catch (err) { alert("Błąd pliku."); }
-        };
-        reader.readAsText(file);
-    }
-
     async function getNBPRate(currency, dateStr) {
-        if (currency === 'PLN') return { rate: 1.00, date: dateStr };
+        if (currency === 'PLN') return { rate: 1.00 };
         let date = new Date(dateStr);
         for (let i = 0; i < 7; i++) {
             date.setDate(date.getDate() - 1);
@@ -161,7 +127,7 @@
                 let response = await fetch(url);
                 if (response.ok) {
                     let data = await response.json();
-                    return { rate: data.rates[0].mid, date: checkDate };
+                    return { rate: data.rates[0].mid };
                 }
             } catch (e) {}
         }
@@ -173,72 +139,88 @@
         const dateVal = document.getElementById('date').value;
         const currency = document.getElementById('currency').value;
         const type = document.getElementById('type').value;
-        const btn = document.getElementById('addBtn');
         if (!amount || !dateVal) return;
-        btn.innerText = "Pobieram NBP..."; btn.disabled = true;
+
+        document.getElementById('addBtn').innerText = "Pobieram курс...";
         const rateData = await getNBPRate(currency, dateVal);
+        
         if (rateData) {
             userHistory.push({
-                id: "id_" + Date.now() + "_" + Math.floor(Math.random() * 1000), 
-                date: dateVal,
-                type: type, currency: currency, amount: amount,
-                rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
-                prefilled: false
+                id: "id_" + Date.now(), date: dateVal, type, currency, amount,
+                rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2))
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
             document.getElementById('amount').value = '';
         }
-        btn.innerText = "Dodaj transakcję"; btn.disabled = false;
+        document.getElementById('addBtn').innerText = "Dodaj transakcję";
     }
 
-    // ВИПРАВЛЕНА ФУНКЦІЯ ВИДАЛЕННЯ
     function deleteTransaction(id) {
-        if (confirm("Czy na pewno chcesz usunąć tę operację?")) {
-            // Використовуємо нестроге порівняння != для надійності
+        if (confirm("Usunąć?")) {
             userHistory = userHistory.filter(t => t.id != id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
         }
     }
 
+    function exportData() {
+        const dataStr = JSON.stringify(userHistory, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "crypto_history.json";
+        link.click();
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (Array.isArray(imported)) {
+                    userHistory = [...userHistory, ...imported.filter(n => !userHistory.find(o => o.id == n.id))];
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
+                    updateUI();
+                }
+            } catch (err) { alert("Błąd pliku"); }
+        };
+        reader.readAsText(file);
+    }
+
     function updateUI() {
-        const history = [...userHistory];
         const summaryTbody = document.getElementById('yearly-summary-table');
         summaryTbody.innerHTML = '';
         let yearsMap = {};
-        history.forEach(t => {
+        userHistory.forEach(t => {
             let y = t.date.substring(0, 4);
             if (!yearsMap[y]) yearsMap[y] = { income: 0, cost: 0 };
             if (t.type === 'PRZYCHÓD') yearsMap[y].income += t.plnValue;
-            if (t.type === 'KOSZT') yearsMap[y].cost += t.plnValue;
+            else yearsMap[y].cost += t.plnValue;
         });
+
         let sortedYears = Object.keys(yearsMap).sort();
         let lossCF = 0;
         sortedYears.forEach(year => {
             let p = yearsMap[year].income, k = yearsMap[year].cost;
             let result = p - k - lossCF;
-            let tax = result > 0 ? (result * 0.19) : 0;
-            summaryTbody.innerHTML += `<tr><td><b>${year}</b></td><td>${p.toFixed(2)}</td><td>${k.toFixed(2)}</td><td>${lossCF.toFixed(2)}</td><td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td><td>${tax.toFixed(2)}</td></tr>`;
+            summaryTbody.innerHTML += `<tr><td><b>${year}</b></td><td>${p.toFixed(2)}</td><td>${k.toFixed(2)}</td><td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td><td>${(result > 0 ? result * 0.19 : 0).toFixed(2)}</td></tr>`;
             lossCF = result < 0 ? Math.abs(result) : 0;
         });
+
         const filterSelect = document.getElementById('yearFilter');
-        const currentFilter = filterSelect.value;
-        filterSelect.innerHTML = '<option value="all">Wszystkie lata</option>';
+        const currentFilter = filterSelect.value || 'all';
+        filterSelect.innerHTML = '<option value="all">Wszystkie</option>';
         sortedYears.forEach(y => filterSelect.innerHTML += `<option value="${y}" ${y === currentFilter ? 'selected' : ''}>${y}</option>`);
+
         const historyTbody = document.getElementById('history-table');
         historyTbody.innerHTML = '';
-        const filtered = filterSelect.value === 'all' ? history : history.filter(t => t.date.startsWith(filterSelect.value));
+        const filtered = currentFilter === 'all' ? userHistory : userHistory.filter(t => t.date.startsWith(currentFilter));
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            // Рендеримо кнопку з безпечною передачею ID
-            historyTbody.innerHTML += `<tr>
-                <td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td>
-                <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
-                <td>${t.amount} ${t.currency}</td>
-                <td>${t.rate === 1 ? '-' : t.rate}</td>
-                <td><b>${t.plnValue.toFixed(2)}</b></td>
-                <td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td>
-            </tr>`;
+            historyTbody.innerHTML += `<tr><td>${t.date}</td><td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate}</td><td><b>${t.plnValue.toFixed(2)}</b></td><td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td></tr>`;
         });
     }
     window.onload = updateUI;
