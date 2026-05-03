@@ -12,15 +12,23 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
+        body { font-family: '-apple-system', BlinkMacSystemFont, sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
         .form-group { margin-top: 15px; }
         label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
         select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        
+        /* Кнопки */
+        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        .btn-main:hover { background-color: #2980b9; }
         .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
         
+        /* Блок бекапу */
+        .backup-section { display: flex; gap: 10px; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccd1d9; }
+        .btn-secondary { flex: 1; background-color: #7f8c8d; color: white; border: none; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; }
+        .btn-secondary:hover { background-color: #636e72; }
+
         .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
@@ -36,9 +44,10 @@
     <h2>Dziennik PIT-38 Krypto</h2>
     
     <div class="alert-info">
-        Dane za lata <b>2023-2025</b> zostały załadowane automatycznie na podstawie Twoich obliczeń.
+        Dane za lata <b>2023-2025</b> są wbudowane. Twoje nowe dane są zapisywane lokalnie.
     </div>
 
+    <!-- Форма додавання -->
     <div class="form-group">
         <label>Typ operacji:</label>
         <select id="type">
@@ -66,7 +75,14 @@
         <input type="date" id="date">
     </div>
 
-    <button onclick="addTransaction()" id="addBtn">Dodaj transakcję</button>
+    <button onclick="addTransaction()" id="addBtn" class="btn-main">Dodaj transakcję</button>
+
+    <!-- СИНХРОНІЗАЦІЯ (Data Portability) -->
+    <div class="backup-section">
+        <button onclick="exportData()" class="btn-secondary">📤 Eksportuj dane (JSON)</button>
+        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Importuj dane</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+    </div>
 
     <h3 style="margin-top: 40px; color: #e67e22;">Podsumowanie roczne (PIT-38)</h3>
     <table>
@@ -106,6 +122,8 @@
 </div>
 
 <script>
+    const STORAGE_KEY = 'pit38_final_storage_v3';
+    
     const prefilledData = [
         { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
         { id: 'p2', date: '2023-12-31', type: 'KOSZT', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
@@ -114,9 +132,54 @@
         { id: 'p5', date: '2025-12-31', type: 'KOSZT', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
     ];
 
-    let userHistory = JSON.parse(localStorage.getItem('pit38_final_storage_v3')) || [];
+    let userHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     
     function getFullHistory() { return [...prefilledData, ...userHistory]; }
+
+    // --- ФУНКЦІЇ СИНХРОНІЗАЦІЇ ---
+    
+    function exportData() {
+        if (userHistory.length === 0) {
+            alert("Brak danych do eksportu.");
+            return;
+        }
+        const dataStr = JSON.stringify(userHistory, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `pit38_backup_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (Array.isArray(imported)) {
+                    if (confirm("Czy chcesz nadpisać obecne dane zaimportowanym plikiem?")) {
+                        userHistory = imported;
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
+                        updateUI();
+                        alert("Dane zaimportowane pomyślnie!");
+                    }
+                } else {
+                    alert("Błędny format pliku.");
+                }
+            } catch (err) {
+                alert("Błąd podczas odczytu pliku.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // --- ЛОГІКА ДОДАТКУ ---
 
     async function getNBPRate(currency, dateStr) {
         if (currency === 'PLN') return { rate: 1.00, date: dateStr };
@@ -155,7 +218,7 @@
                 rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
                 prefilled: false
             });
-            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
             document.getElementById('amount').value = '';
         }
@@ -165,7 +228,7 @@
     function deleteTransaction(id) {
         if (confirm("Czy na pewno chcesz usunąć tę transakcję?")) {
             userHistory = userHistory.filter(t => t.id !== id);
-            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
         }
     }
@@ -204,9 +267,17 @@
             lossCF = result < 0 ? Math.abs(result) : 0;
         });
 
+        // Оновлення фільтра років
+        const filterSelect = document.getElementById('yearFilter');
+        const currentFilter = filterSelect.value;
+        filterSelect.innerHTML = '<option value="all">Wszystkie lata</option>';
+        sortedYears.forEach(y => {
+            filterSelect.innerHTML += `<option value="${y}" ${y === currentFilter ? 'selected' : ''}>${y}</option>`;
+        });
+
         const historyTbody = document.getElementById('history-table');
         historyTbody.innerHTML = '';
-        const filter = document.getElementById('yearFilter').value;
+        const filter = filterSelect.value;
         const filtered = filter === 'all' ? history : history.filter(t => t.date.startsWith(filter));
 
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
