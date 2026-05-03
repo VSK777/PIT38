@@ -36,7 +36,7 @@
     <h2>Dziennik PIT-38 Krypto</h2>
     
     <div class="alert-info">
-        Wczytaj plik <b>JSON z iCloud</b>, aby zobaczyć historię transakcji.
+        Wczytaj plik <b>JSON z iCloud</b>, aby zobaczyć historię transakcji. Nowe wpisy są automatycznie zapamiętywane.
     </div>
 
     <div class="form-group">
@@ -58,7 +58,7 @@
 
     <div class="form-group">
         <label>Kwota:</label>
-        <input type="number" id="amount" placeholder="np. 500.00" step="0.01">
+        <input type="number" id="amount" placeholder="0.00" step="0.01">
     </div>
 
     <div class="form-group">
@@ -113,13 +113,7 @@
 
 <script>
     const STORAGE_KEY = 'pit38_final_storage_v3';
-    
-    // Тепер цей масив порожній, дані прийдуть з твого файлу
-    const prefilledData = [];
-
     let userHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    
-    function getFullHistory() { return [...prefilledData, ...userHistory]; }
 
     function exportData() {
         if (userHistory.length === 0) {
@@ -131,7 +125,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `pit38_backup_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `pit38_history_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
     }
 
@@ -143,15 +137,12 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 if (Array.isArray(imported)) {
-                    if (confirm("Czy chcesz zaimportować te dane?")) {
-                        // Об'єднуємо існуючі дані з новими, уникаючи дублікатів по ID
-                        const existingIds = userHistory.map(t => t.id);
-                        const newEntries = imported.filter(t => !existingIds.includes(t.id));
+                    if (confirm("Zaimportować dane z pliku? (Istniejące wpisy zostaną zachowane)")) {
+                        const existingIds = userHistory.map(t => String(t.id));
+                        const newEntries = imported.filter(t => !existingIds.includes(String(t.id)));
                         userHistory = [...userHistory, ...newEntries];
-                        
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
                         updateUI();
-                        alert("Dane załadowane!");
                     }
                 }
             } catch (err) { alert("Błąd pliku."); }
@@ -188,7 +179,8 @@
         const rateData = await getNBPRate(currency, dateVal);
         if (rateData) {
             userHistory.push({
-                id: Date.now().toString(), date: dateVal,
+                id: "id_" + Date.now() + "_" + Math.floor(Math.random() * 1000), 
+                date: dateVal,
                 type: type, currency: currency, amount: amount,
                 rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
                 prefilled: false
@@ -200,16 +192,18 @@
         btn.innerText = "Dodaj transakcję"; btn.disabled = false;
     }
 
+    // ВИПРАВЛЕНА ФУНКЦІЯ ВИДАЛЕННЯ
     function deleteTransaction(id) {
-        if (confirm("Usunąć?")) {
-            userHistory = userHistory.filter(t => t.id !== id);
+        if (confirm("Czy na pewno chcesz usunąć tę operację?")) {
+            // Використовуємо нестроге порівняння != для надійності
+            userHistory = userHistory.filter(t => t.id != id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
         }
     }
 
     function updateUI() {
-        const history = getFullHistory();
+        const history = [...userHistory];
         const summaryTbody = document.getElementById('yearly-summary-table');
         summaryTbody.innerHTML = '';
         let yearsMap = {};
@@ -236,7 +230,15 @@
         historyTbody.innerHTML = '';
         const filtered = filterSelect.value === 'all' ? history : history.filter(t => t.date.startsWith(filterSelect.value));
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            historyTbody.innerHTML += `<tr><td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td><td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate === 1 ? '-' : t.rate}</td><td><b>${t.plnValue.toFixed(2)}</b></td><td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td></tr>`;
+            // Рендеримо кнопку з безпечною передачею ID
+            historyTbody.innerHTML += `<tr>
+                <td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td>
+                <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
+                <td>${t.amount} ${t.currency}</td>
+                <td>${t.rate === 1 ? '-' : t.rate}</td>
+                <td><b>${t.plnValue.toFixed(2)}</b></td>
+                <td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td>
+            </tr>`;
         });
     }
     window.onload = updateUI;
