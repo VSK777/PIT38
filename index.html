@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIT-38 Crypto Pro (Fixed Build)</title>
+    <title>PIT-38 Crypto Pro (Ultra Stable)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
@@ -25,21 +25,21 @@
 <body>
 <div class="container">
     <h2>Dziennik PIT-38 Krypto</h2>
-    <div class="alert-info"><b>Статус:</b> <span id="status-text">Завантаження...</span></div>
+    <div class="alert-info"><b>Статус:</b> <span id="status-text">Ініціалізація...</span></div>
 
     <div class="form-group"><label>Typ:</label><select id="type"><option value="KOSZT">KOSZT</option><option value="PRZYCHÓD">PRZYCHÓD</option></select></div>
     <div class="form-group"><label>Waluta:</label><select id="currency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select></div>
-    <div class="form-group"><label>Kwota:</label><input type="number" id="amount" step="0.01"></div>
+    <div class="form-group"><label>Kwota:</label><input type="number" id="amount" step="0.01" placeholder="0.00"></div>
     <div class="form-group"><label>Data:</label><input type="date" id="date"></div>
     <button onclick="addTransaction()" id="addBtn">Dodaj transakcję</button>
 
     <h3 style="margin-top: 40px; color: #e67e22;">Podsumowanie roczne</h3>
-    <table><thead><tr><th>Rok</th><th>Przychody</th><th>Koszty</th><th>DOCHÓD</th><th>Podatek</th></tr></thead><tbody id="yearly-summary-table"></tbody></table>
+    <table><thead><tr><th>Rok</th><th>Przychody</th><th>Koszty</th><th>DOCHÓD</th><th>Podatek (19%)</th></tr></thead><tbody id="yearly-summary-table"></tbody></table>
 
     <h3>Historia transakcji</h3>
     <table><thead><tr><th>Data</th><th>Typ</th><th>Kwota</th><th>Kurs</th><th>PLN</th></tr></thead><tbody id="history-table"></tbody></table>
 
-    <div id="debug-console"><b>Лог діагностики:</b><div id="debug-log">Готово до роботи.</div></div>
+    <div id="debug-console"><b>Лог діагностики:</b><div id="debug-log">Готово.</div></div>
 </div>
 
 <script>
@@ -68,24 +68,40 @@
             
             full.forEach(t => {
                 let y = t.date.substring(0, 4);
+                // Захист від NaN: якщо значення немає, беремо 0
                 let val = parseFloat(t.plnValue || t.pln_value || 0);
+                if (isNaN(val)) val = 0;
+
                 if (!map[y]) map[y] = { i: 0, c: 0 };
                 if (t.type === 'PRZYCHÓD') map[y].i += val; else map[y].c += val;
             });
 
             Object.keys(map).sort().forEach(y => {
                 let res = map[y].i - map[y].c;
-                tbody.innerHTML += `<tr><td>${y}</td><td>${map[y].i.toFixed(2)}</td><td>${map[y].c.toFixed(2)}</td><td class="${res<0?'neg':'pos'}">${res.toFixed(2)}</td><td>${res>0?(res*0.19).toFixed(2):0}</td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td><b>${y}</b></td>
+                    <td>${map[y].i.toFixed(2)}</td>
+                    <td>${map[y].c.toFixed(2)}</td>
+                    <td class="${res < 0 ? 'neg' : 'pos'}">${res.toFixed(2)}</td>
+                    <td>${res > 0 ? (res * 0.19).toFixed(2) : '0.00'}</td>
+                </tr>`;
             });
 
             const hbody = document.getElementById('history-table');
             hbody.innerHTML = '';
             full.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
                 let val = parseFloat(t.plnValue || t.pln_value || 0);
-                hbody.innerHTML += `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate || 1}</td><td>${val.toFixed(2)}</td></tr>`;
+                if (isNaN(val)) val = 0;
+                hbody.innerHTML += `<tr>
+                    <td>${t.date}</td>
+                    <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
+                    <td>${t.amount} ${t.currency}</td>
+                    <td>${t.rate || 1}</td>
+                    <td><b>${val.toFixed(2)}</b></td>
+                </tr>`;
             });
         } catch (e) {
-            log("Помилка візуалізації: " + e.message);
+            log("Помилка UI: " + e.message);
         }
     }
 
@@ -97,7 +113,6 @@
             if (data) {
                 userHistory = data.map(t => ({ ...t, plnValue: t.pln_value }));
                 localStorage.setItem('backup_data', JSON.stringify(userHistory));
-                log("Дані синхронізовано з хмарою.");
             }
             document.getElementById('status-text').innerText = "Хмара підключена ✅";
         } catch (e) {
@@ -110,12 +125,15 @@
     async function getNBPRate(currency, dateStr) {
         if (currency === 'PLN') return { rate: 1.00, date: dateStr };
         let date = new Date(dateStr);
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 10; i++) {
             date.setDate(date.getDate() - 1);
             let checkDate = date.toISOString().split('T')[0];
             try {
                 let r = await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/${currency}/${checkDate}/?format=json`);
-                if (r.ok) { let d = await r.json(); return { rate: d.rates[0].mid, date: checkDate }; }
+                if (r.ok) { 
+                    let d = await r.json(); 
+                    return { rate: d.rates[0].mid, date: checkDate }; 
+                }
             } catch (e) {}
         }
         return null;
@@ -125,30 +143,35 @@
         const amount = parseFloat(document.getElementById('amount').value);
         const dateVal = document.getElementById('date').value;
         const btn = document.getElementById('addBtn');
-        if (!amount || !dateVal) return;
+        if (!amount || !dateVal) { alert("Введіть суму та дату!"); return; }
 
-        btn.innerText = "Обробка..."; btn.disabled = true;
+        btn.innerText = "Шукаю курс..."; btn.disabled = true;
 
         try {
-            const rateData = await getNBPRate(document.getElementById('currency').value, dateVal);
-            if (!rateData) throw new Error("Курс NBP недоступний.");
+            const currency = document.getElementById('currency').value;
+            const rateData = await getNBPRate(currency, dateVal);
+            
+            if (!rateData) throw new Error("Не вдалося отримати курс NBP. Перевірте дату (можливо, свята).");
 
             const plnVal = parseFloat((amount * rateData.rate).toFixed(2));
+            
             const newEntry = {
                 date: dateVal,
                 nbp_date: rateData.date,
                 type: document.getElementById('type').value,
-                currency: document.getElementById('currency').value,
+                currency: currency,
                 amount: amount,
                 rate: rateData.rate,
-                plnValue: plnVal, // Для локального показу
-                pln_value: plnVal // Для бази даних
+                plnValue: plnVal,
+                pln_value: plnVal
             };
 
+            // Додаємо локально
             userHistory.push(newEntry);
             localStorage.setItem('backup_data', JSON.stringify(userHistory));
             updateUI();
 
+            // Відправляємо в базу
             if (_supabase) {
                 const { error } = await _supabase.from('transactions').insert([{
                     date: newEntry.date,
@@ -159,11 +182,13 @@
                     rate: newEntry.rate,
                     pln_value: newEntry.pln_value
                 }]);
-                if (error) log("Хмарна помилка: " + error.message);
+                if (error) log("Помилка хмари: " + error.message);
             }
+            
             document.getElementById('amount').value = '';
         } catch (e) {
             alert("Помилка: " + e.message);
+            log("Помилка додавання: " + e.message);
         } finally {
             btn.innerText = "Dodaj transakcję"; btn.disabled = false;
         }
