@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIT-38 Crypto Pro</title>
+    
+    <!-- Ikonka USDT dla iPada -->
+    <link rel="apple-touch-icon" href="https://cryptologos.cc/logos/tether-usdt-logo.png">
+    <meta name="apple-mobile-web-app-title" content="PIT-38">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .form-group { margin-top: 15px; }
+        label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        .btn-danger { background-color: #e74c3c; padding: 6px 10px; font-size: 11px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        
+        .alert-info { background: #fdf9f3; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; margin: 20px 0; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .pos { color: #2ecc71; font-weight: bold; }
+        .neg { color: #e74c3c; font-weight: bold; }
+        .prefilled-tag { font-size: 9px; background: #95a5a6; color: white; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Dziennik PIT-38 Krypto</h2>
+    
+    <div class="alert-info">
+        Dane za lata <b>2023-2025</b> zostały załadowane automatycznie на podstawie Twoich obliczeń.
+    </div>
+
+    <div class="form-group">
+        <label>Typ operacji:</label>
+        <select id="type">
+            <option value="cost">KOSZT (Zakup / Wydatki)</option>
+            <option value="income">PRZYCHÓD (Sprzedaż / Dochód)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Waluta:</label>
+        <select id="currency">
+            <option value="USD">USD (USDT / USDC)</option>
+            <option value="EUR">EUR</option>
+            <option value="PLN">PLN</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Kwota:</label>
+        <input type="number" id="amount" placeholder="np. 500.00" step="0.01">
+    </div>
+
+    <div class="form-group">
+        <label>Data transakcji:</label>
+        <input type="date" id="date">
+    </div>
+
+    <button onclick="addTransaction()" id="addBtn">Dodaj transakcję</button>
+
+    <h3 style="margin-top: 40px; color: #e67e22;">Podsumowanie roczne (PIT-38)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Rok</th>
+                <th>Przychody</th>
+                <th>Koszty</th>
+                <th>Koszty lat ub.</th>
+                <th>DOCHÓD</th>
+                <th>Podatek (19%)</th>
+            </tr>
+        </thead>
+        <tbody id="yearly-summary-table"></tbody>
+    </table>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 40px;">
+        <h3 style="margin: 0; font-size: 18px;">Historia transakcji</h3>
+        <select id="yearFilter" onchange="updateUI()" style="width: 140px;">
+            <option value="all">Wszystkie lata</option>
+        </select>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Typ</th>
+                <th>Kwota</th>
+                <th>Kurs NBP</th>
+                <th>Wartość (PLN)</th>
+                <th>Akcja</th>
+            </tr>
+        </thead>
+        <tbody id="history-table"></tbody>
+    </table>
+</div>
+
+<script>
+    const prefilledData = [
+        { id: 'p1', date: '2023-12-31', type: 'income', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
+        { id: 'p2', date: '2023-12-31', type: 'cost', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
+        { id: 'p3', date: '2024-12-31', type: 'cost', currency: 'PLN', amount: 22944.37, rate: 1, plnValue: 22944.37, prefilled: true },
+        { id: 'p4', date: '2025-12-31', type: 'income', currency: 'PLN', amount: 1185.30, rate: 1, plnValue: 1185.30, prefilled: true },
+        { id: 'p5', date: '2025-12-31', type: 'cost', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
+    ];
+
+    let userHistory = JSON.parse(localStorage.getItem('pit38_final_storage_v2')) || [];
+    
+    function getFullHistory() { return [...prefilledData, ...userHistory]; }
+
+    async function getNBPRate(currency, dateStr) {
+        if (currency === 'PLN') return { rate: 1.00, date: dateStr };
+        let date = new Date(dateStr);
+        for (let i = 0; i < 7; i++) {
+            date.setDate(date.getDate() - 1);
+            let checkDate = date.toISOString().split('T')[0];
+            let url = `https://api.nbp.pl/api/exchangerates/rates/a/${currency}/${checkDate}/?format=json`;
+            try {
+                let response = await fetch(url);
+                if (response.ok) {
+                    let data = await response.json();
+                    return { rate: data.rates[0].mid, date: checkDate };
+                }
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    async function addTransaction() {
+        const amount = parseFloat(document.getElementById('amount').value);
+        const dateVal = document.getElementById('date').value;
+        const currency = document.getElementById('currency').value;
+        const type = document.getElementById('type').value;
+        const btn = document.getElementById('addBtn');
+
+        if (!amount || !dateVal) return;
+
+        btn.innerText = "Pobieram NBP..."; btn.disabled = true;
+        const rateData = await getNBPRate(currency, dateVal);
+
+        if (rateData) {
+            userHistory.push({
+                id: Date.now(), date: dateVal, nbpDate: rateData.date,
+                type: type, currency: currency, amount: amount,
+                rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
+                prefilled: false
+            });
+            localStorage.setItem('pit38_final_storage_v2', JSON.stringify(userHistory));
+            updateUI();
+            document.getElementById('amount').value = '';
+        }
+        btn.innerText = "Dodaj transakcję"; btn.disabled = false;
+    }
+
+    function deleteTransaction(id) {
+        if (confirm("Czy na pewno chcesz usunąć tę transakcję?")) {
+            userHistory = userHistory.filter(t => t.id !== id);
+            localStorage.setItem('pit38_final_storage_v2', JSON.stringify(userHistory));
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        const history = getFullHistory();
+        const summaryTbody = document.getElementById('yearly-summary-table');
+        summaryTbody.innerHTML = '';
+        
+        let yearsMap = {};
+        history.forEach(t => {
+            let y = t.date.substring(0, 4);
+            if (!yearsMap[y]) yearsMap[y] = { income: 0, cost: 0 };
+            if (t.type === 'income') yearsMap[y].income += t.plnValue;
+            if (t.type === 'cost') yearsMap[y].cost += t.plnValue;
+        });
+
+        let sortedYears = Object.keys(yearsMap).sort();
+        let lossCF = 0;
+
+        sortedYears.forEach(year => {
+            let p = yearsMap[year].income;
+            let k = yearsMap[year].cost;
+            let result = p - k - lossCF;
+            let tax = result > 0 ? (result * 0.19) : 0;
+            summaryTbody.innerHTML += `
+                <tr>
+                    <td><b>${year}</b></td>
+                    <td>${p.toFixed(2)}</td>
+                    <td>${k.toFixed(2)}</td>
+                    <td>${lossCF.toFixed(2)}</td>
+                    <td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td>
+                    <td>${tax.toFixed(2)}</td>
+                </tr>
+            `;
+            lossCF = result < 0 ? Math.abs(result) : 0;
+        });
+
+        const historyTbody = document.getElementById('history-table');
+        historyTbody.innerHTML = '';
+        const filter = document.getElementById('yearFilter').value;
+        const filtered = filter === 'all' ? history : history.filter(t => t.date.startsWith(filter));
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            historyTbody.innerHTML += `
+                <tr>
+                    <td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td>
+                    <td class="${t.type === 'income' ? 'pos' : 'neg'}">${t.type.toUpperCase()}</td>
+                    <td>${t.amount} ${t.currency}</td>
+                    <td>${t.rate === 1 ? '-' : t.rate}</td>
+                    <td><b>${t.plnValue.toFixed(2)}</b></td>
+                    <td>${t.prefilled ? '-' : `<button class="btn-danger" onclick="deleteTransaction(${t.id})">Usuń</button>`}</td>
+                </tr>
+            `;
+        });
+    }
+    window.onload = updateUI;
+</script>
+</body>
+</html>
