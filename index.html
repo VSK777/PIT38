@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIT-38 Crypto Pro (Stable Build)</title>
+    <title>PIT-38 Crypto Pro (Fixed Build)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
@@ -19,7 +19,7 @@
         th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
-        #debug-console { background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; margin-top: 30px; display: block; }
+        #debug-console { background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 11px; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -39,7 +39,7 @@
     <h3>Historia transakcji</h3>
     <table><thead><tr><th>Data</th><th>Typ</th><th>Kwota</th><th>Kurs</th><th>PLN</th></tr></thead><tbody id="history-table"></tbody></table>
 
-    <div id="debug-console"><b>Консоль налагодження:</b><div id="debug-log">Ініціалізація...</div></div>
+    <div id="debug-console"><b>Лог діагностики:</b><div id="debug-log">Готово до роботи.</div></div>
 </div>
 
 <script>
@@ -47,7 +47,7 @@
     const SUPABASE_KEY = 'Sb_publishable_vBJcrXbrBXA1QRuYDFcr4w_ctTZQ7py';
     
     let _supabase;
-    const log = (msg) => { document.getElementById('debug-log').innerHTML += `<br>> ${msg}`; console.log(msg); };
+    const log = (msg) => { document.getElementById('debug-log').innerHTML += `<br>> ${msg}`; };
 
     const prefilledData = [
         { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90 },
@@ -59,48 +59,50 @@
 
     let userHistory = JSON.parse(localStorage.getItem('backup_data')) || [];
 
-    // 1. ВІДОБРАЖАЄМО ДАНІ ОДРАЗУ
     function updateUI() {
-        const full = [...prefilledData, ...userHistory];
-        const tbody = document.getElementById('yearly-summary-table');
-        tbody.innerHTML = '';
-        let map = {};
-        full.forEach(t => {
-            let y = t.date.substring(0, 4);
-            if (!map[y]) map[y] = { i: 0, c: 0 };
-            if (t.type === 'PRZYCHÓD') map[y].i += t.plnValue; else map[y].c += t.plnValue;
-        });
-        Object.keys(map).sort().forEach(y => {
-            let res = map[y].i - map[y].c;
-            tbody.innerHTML += `<tr><td>${y}</td><td>${map[y].i.toFixed(2)}</td><td>${map[y].c.toFixed(2)}</td><td class="${res<0?'neg':'pos'}">${res.toFixed(2)}</td><td>${res>0?(res*0.19).toFixed(2):0}</td></tr>`;
-        });
+        try {
+            const full = [...prefilledData, ...userHistory];
+            const tbody = document.getElementById('yearly-summary-table');
+            tbody.innerHTML = '';
+            let map = {};
+            
+            full.forEach(t => {
+                let y = t.date.substring(0, 4);
+                let val = parseFloat(t.plnValue || t.pln_value || 0);
+                if (!map[y]) map[y] = { i: 0, c: 0 };
+                if (t.type === 'PRZYCHÓD') map[y].i += val; else map[y].c += val;
+            });
 
-        const hbody = document.getElementById('history-table');
-        hbody.innerHTML = '';
-        full.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            hbody.innerHTML += `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate}</td><td>${t.plnValue.toFixed(2)}</td></tr>`;
-        });
+            Object.keys(map).sort().forEach(y => {
+                let res = map[y].i - map[y].c;
+                tbody.innerHTML += `<tr><td>${y}</td><td>${map[y].i.toFixed(2)}</td><td>${map[y].c.toFixed(2)}</td><td class="${res<0?'neg':'pos'}">${res.toFixed(2)}</td><td>${res>0?(res*0.19).toFixed(2):0}</td></tr>`;
+            });
+
+            const hbody = document.getElementById('history-table');
+            hbody.innerHTML = '';
+            full.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+                let val = parseFloat(t.plnValue || t.pln_value || 0);
+                hbody.innerHTML += `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate || 1}</td><td>${val.toFixed(2)}</td></tr>`;
+            });
+        } catch (e) {
+            log("Помилка візуалізації: " + e.message);
+        }
     }
 
-    // 2. СПРОБА ПІДКЛЮЧЕННЯ ДО ХМАРИ
     async function initCloud() {
         try {
-            if (typeof supabase === 'undefined') { log("Помилка: Бібліотека Supabase не завантажена!"); return; }
             _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            log("Клієнт ініціалізований. Спроба завантаження...");
-            
             const { data, error } = await _supabase.from('transactions').select('*');
             if (error) throw error;
-            
-            if (data && data.length > 0) {
+            if (data) {
                 userHistory = data.map(t => ({ ...t, plnValue: t.pln_value }));
                 localStorage.setItem('backup_data', JSON.stringify(userHistory));
-                log(`Завантажено ${data.length} записів з хмари.`);
+                log("Дані синхронізовано з хмарою.");
             }
             document.getElementById('status-text').innerText = "Хмара підключена ✅";
         } catch (e) {
-            log("Помилка хмари: " + e.message);
-            document.getElementById('status-text').innerText = "Працюю локально (база недоступна) ⚠️";
+            log("Хмара недоступна: " + e.message);
+            document.getElementById('status-text').innerText = "Локальний режим ⚠️";
         }
         updateUI();
     }
@@ -126,12 +128,12 @@
         if (!amount || !dateVal) return;
 
         btn.innerText = "Обробка..."; btn.disabled = true;
-        log("Початок додавання...");
 
         try {
             const rateData = await getNBPRate(document.getElementById('currency').value, dateVal);
-            if (!rateData) throw new Error("Курс NBP не знайдено");
+            if (!rateData) throw new Error("Курс NBP недоступний.");
 
+            const plnVal = parseFloat((amount * rateData.rate).toFixed(2));
             const newEntry = {
                 date: dateVal,
                 nbp_date: rateData.date,
@@ -139,37 +141,35 @@
                 currency: document.getElementById('currency').value,
                 amount: amount,
                 rate: rateData.rate,
-                pln_value: parseFloat((amount * rateData.rate).toFixed(2))
+                plnValue: plnVal, // Для локального показу
+                pln_value: plnVal // Для бази даних
             };
 
-            // ЗАВЖДИ зберігаємо локально спочатку
             userHistory.push(newEntry);
             localStorage.setItem('backup_data', JSON.stringify(userHistory));
             updateUI();
 
-            // Потім намагаємось у хмару
             if (_supabase) {
-                log("Відправка в хмару...");
                 const { error } = await _supabase.from('transactions').insert([{
-                    ...newEntry, pln_value: newEntry.pln_value
+                    date: newEntry.date,
+                    nbp_date: newEntry.nbp_date,
+                    type: newEntry.type,
+                    currency: newEntry.currency,
+                    amount: newEntry.amount,
+                    rate: newEntry.rate,
+                    pln_value: newEntry.pln_value
                 }]);
-                if (error) log("Не вдалося дублювати в хмару: " + error.message);
-                else log("Дані в хмарі синхронізовано!");
+                if (error) log("Хмарна помилка: " + error.message);
             }
-            
             document.getElementById('amount').value = '';
         } catch (e) {
             alert("Помилка: " + e.message);
-            log("Критична помилка: " + e.message);
         } finally {
             btn.innerText = "Dodaj transakcję"; btn.disabled = false;
         }
     }
 
-    window.onload = () => {
-        updateUI(); // Показуємо старі дані відразу
-        initCloud(); // Пробуємо підключити хмару на фоні
-    };
+    window.onload = () => { updateUI(); initCloud(); };
 </script>
 </body>
 </html>
