@@ -27,7 +27,7 @@
         th { background-color: #f8f9fa; }
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
-        .prefilled-tag { font-size: 9px; background: #95a5a6; color: white; padding: 2px 4px; border-radius: 3px; }
+        .prefilled-tag { font-size: 9px; background: #95a5a6; color: white; padding: 2px 4px; border-radius: 3px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -36,14 +36,14 @@
     <h2>Dziennik PIT-38 Krypto</h2>
     
     <div class="alert-info">
-        Dane za lata <b>2023-2025</b> zostały załadowane automatycznie на podstawie Twoich obliczeń.
+        Dane za lata <b>2023-2025</b> zostały załadowane automatycznie na podstawie Twoich obliczeń.
     </div>
 
     <div class="form-group">
         <label>Typ operacji:</label>
         <select id="type">
-            <option value="cost">KOSZT (Zakup / Wydatki)</option>
-            <option value="income">PRZYCHÓD (Sprzedaż / Dochód)</option>
+            <option value="KOSZT">KOSZT (Zakup / Wydatki)</option>
+            <option value="PRZYCHÓD">PRZYCHÓD (Sprzedaż / Dochód)</option>
         </select>
     </div>
 
@@ -107,14 +107,14 @@
 
 <script>
     const prefilledData = [
-        { id: 'p1', date: '2023-12-31', type: 'income', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
-        { id: 'p2', date: '2023-12-31', type: 'cost', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
-        { id: 'p3', date: '2024-12-31', type: 'cost', currency: 'PLN', amount: 22944.37, rate: 1, plnValue: 22944.37, prefilled: true },
-        { id: 'p4', date: '2025-12-31', type: 'income', currency: 'PLN', amount: 1185.30, rate: 1, plnValue: 1185.30, prefilled: true },
-        { id: 'p5', date: '2025-12-31', type: 'cost', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
+        { id: 'p1', date: '2023-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 143301.90, rate: 1, plnValue: 143301.90, prefilled: true },
+        { id: 'p2', date: '2023-12-31', type: 'KOSZT', currency: 'PLN', amount: 151672.70, rate: 1, plnValue: 151672.70, prefilled: true },
+        { id: 'p3', date: '2024-12-31', type: 'KOSZT', currency: 'PLN', amount: 22944.37, rate: 1, plnValue: 22944.37, prefilled: true },
+        { id: 'p4', date: '2025-12-31', type: 'PRZYCHÓD', currency: 'PLN', amount: 1185.30, rate: 1, plnValue: 1185.30, prefilled: true },
+        { id: 'p5', date: '2025-12-31', type: 'KOSZT', currency: 'PLN', amount: 18425.91, rate: 1, plnValue: 18425.91, prefilled: true }
     ];
 
-    let userHistory = JSON.parse(localStorage.getItem('pit38_final_storage_v2')) || [];
+    let userHistory = JSON.parse(localStorage.getItem('pit38_final_storage_v3')) || [];
     
     function getFullHistory() { return [...prefilledData, ...userHistory]; }
 
@@ -155,7 +155,7 @@
                 rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2)),
                 prefilled: false
             });
-            localStorage.setItem('pit38_final_storage_v2', JSON.stringify(userHistory));
+            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
             updateUI();
             document.getElementById('amount').value = '';
         }
@@ -165,7 +165,7 @@
     function deleteTransaction(id) {
         if (confirm("Czy na pewno chcesz usunąć tę transakcję?")) {
             userHistory = userHistory.filter(t => t.id !== id);
-            localStorage.setItem('pit38_final_storage_v2', JSON.stringify(userHistory));
+            localStorage.setItem('pit38_final_storage_v3', JSON.stringify(userHistory));
             updateUI();
         }
     }
@@ -179,8 +179,8 @@
         history.forEach(t => {
             let y = t.date.substring(0, 4);
             if (!yearsMap[y]) yearsMap[y] = { income: 0, cost: 0 };
-            if (t.type === 'income') yearsMap[y].income += t.plnValue;
-            if (t.type === 'cost') yearsMap[y].cost += t.plnValue;
+            if (t.type === 'PRZYCHÓD') yearsMap[y].income += t.plnValue;
+            if (t.type === 'KOSZT') yearsMap[y].cost += t.plnValue;
         });
 
         let sortedYears = Object.keys(yearsMap).sort();
@@ -213,7 +213,7 @@
             historyTbody.innerHTML += `
                 <tr>
                     <td>${t.date} ${t.prefilled ? '<span class="prefilled-tag">AUTO</span>' : ''}</td>
-                    <td class="${t.type === 'income' ? 'pos' : 'neg'}">${t.type.toUpperCase()}</td>
+                    <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
                     <td>${t.amount} ${t.currency}</td>
                     <td>${t.rate === 1 ? '-' : t.rate}</td>
                     <td><b>${t.plnValue.toFixed(2)}</b></td>
