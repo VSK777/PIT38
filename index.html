@@ -3,80 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIT-38 Crypto Pro (Cloud)</title>
+    <title>PIT-38 Crypto Pro (Cloud Sync)</title>
+    
+    <!-- Налаштування для iPad (іконка та вигляд додатка) -->
     <link rel="apple-touch-icon" href="https://cryptologos.cc/logos/tether-usdt-logo.png">
+    <meta name="apple-mobile-web-app-title" content="PIT-38">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         body { font-family: '-apple-system', sans-serif; padding: 20px; background-color: #f4f7f6; color: #333; }
         .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h2, h3 { text-align: center; color: #2c3e50; }
+        h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
         .form-group { margin-top: 15px; }
         label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccd1d9; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:disabled { background-color: #bdc3c7; }
+        
+        .status-bar { text-align: center; font-size: 12px; padding: 8px; border-radius: 5px; margin-bottom: 20px; }
+        .status-sync { background: #e8f6f3; color: #1abc9c; }
+        .status-loading { background: #fef9e7; color: #f39c12; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
+        th, td { padding: 12px; text-align: center; border: 1px solid #eee; }
+        th { background-color: #f8f9fa; color: #7f8c8d; font-weight: 600; }
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
-        .loading-status { text-align: center; font-size: 12px; color: #7f8c8d; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Dziennik PIT-38 (Sync)</h2>
-    <div id="status" class="loading-status">Synchronizacja z Google Sheets...</div>
+    <h2>Dziennik PIT-38 (Chmura)</h2>
+    <div id="sync-status" class="status-bar status-loading">Inicjalizacja połączenia...</div>
 
     <div class="form-group">
         <label>Typ operacji:</label>
         <select id="type">
-            <option value="KOSZT">KOSZT</option>
-            <option value="PRZYCHÓD">PRZYCHÓD</option>
+            <option value="KOSZT">KOSZT (Zakup / Wydatek)</option>
+            <option value="PRZYCHÓD">PRZYCHÓD (Sprzedaż / Dochód)</option>
         </select>
     </div>
 
-    <div class="form-group">
-        <label>Waluta / Kwota / Data:</label>
-        <div style="display: flex; gap: 10px;">
-            <select id="currency" style="flex: 1;"><option value="USD">USD</option><option value="EUR">EUR</option><option value="PLN">PLN</option></select>
-            <input type="number" id="amount" style="flex: 2;" placeholder="0.00">
-            <input type="date" id="date" style="flex: 2;">
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <div style="flex: 1;">
+            <label>Waluta:</label>
+            <select id="currency">
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="PLN">PLN</option>
+            </select>
+        </div>
+        <div style="flex: 2;">
+            <label>Kwota:</label>
+            <input type="number" id="amount" placeholder="0.00" step="0.01">
         </div>
     </div>
 
-    <button onclick="addTransaction()" id="addBtn">Dodaj i Zapisz w Chmurze</button>
+    <div class="form-group">
+        <label>Data transakcji:</label>
+        <input type="date" id="date">
+    </div>
 
-    <h3>Podsumowanie PIT-38</h3>
+    <button onclick="addTransaction()" id="addBtn">Dodaj i Zapisz w Google Sheets</button>
+
+    <h3 style="margin-top: 40px;">Podsumowanie Roczne</h3>
     <table>
-        <thead><tr><th>Rok</th><th>Przychody</th><th>Koszty</th><th>Dochód</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Rok</th>
+                <th>Przychody</th>
+                <th>Koszty</th>
+                <th>Wynik (PLN)</th>
+            </tr>
+        </thead>
         <tbody id="summary-table"></tbody>
     </table>
 
-    <h3>Ostatnie transakcje</h3>
+    <h3 style="margin-top: 30px;">Historia (z Chmury)</h3>
     <table>
-        <thead><tr><th>Data</th><th>Typ</th><th>Kwota</th><th>PLN</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Typ</th>
+                <th>Kwota</th>
+                <th>Kurs NBP</th>
+                <th>Wartość PLN</th>
+            </tr>
+        </thead>
         <tbody id="history-table"></tbody>
     </table>
 </div>
 
 <script>
-    // --- ВСТАВТЕ ВАШЕ ПОСИЛАННЯ ТУТ ---
-    const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwyjlnwqcDYoqn8t4x2RdmmoYPDfvKcSoXhd_XQQurv7qrtyiH-lgNWpL02G9hX7hLL/exec";
+    // Посилання на ваш Google Script (вже вписано)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyjlnwqcDYoqn8t4x2RdmmoYPDfvKcSoXhd_XQQurv7qrtyiH-lgNWpL02G9hX7hLL/exec";
     
-    let userHistory = [];
+    let transactions = [];
 
+    // 1. Завантаження даних із таблиці при відкритті сайту
     async function loadData() {
+        const status = document.getElementById('sync-status');
         try {
-            const response = await fetch(CLOUD_URL);
-            userHistory = await response.json();
-            document.getElementById('status').innerText = "Dane zsynchronizowane ✅";
+            const response = await fetch(SCRIPT_URL);
+            transactions = await response.json();
+            status.innerText = "Dane zsynchronizowane ✅";
+            status.className = "status-bar status-sync";
             updateUI();
         } catch (e) {
-            document.getElementById('status').innerText = "Błąd synchronizacji ❌ (Tryb Offline)";
+            status.innerText = "Błąd połączenia. Dane mogą być nieaktualne.";
+            status.style.background = "#fdedec";
         }
     }
 
+    // 2. Додавання нової транзакції
     async function addTransaction() {
         const btn = document.getElementById('addBtn');
         const amount = parseFloat(document.getElementById('amount').value);
@@ -84,19 +125,20 @@
         const currency = document.getElementById('currency').value;
         const type = document.getElementById('type').value;
 
-        if (!amount || !date) return alert("Wypełnij wszystkie pola!");
+        if (!amount || !date) return alert("Wpisz kwotę i datę!");
 
-        btn.disabled = true; btn.innerText = "Zapisywanie...";
+        btn.disabled = true;
+        btn.innerText = "Wysyłanie do chmury...";
 
         // Отримання курсу NBP
         let rate = 1;
         if (currency !== 'PLN') {
-            const nbpResp = await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/${currency}/${date}/?format=json`).catch(()=>null);
-            if (nbpResp && nbpResp.ok) {
+            try {
+                const nbpResp = await fetch(`https://api.nbp.pl/api/exchangerates/rates/a/${currency}/${date}/?format=json`);
                 const nbpData = await nbpResp.json();
                 rate = nbpData.rates[0].mid;
-            } else {
-                rate = 4.25; // Приблизний курс якщо NBP недоступний
+            } catch (e) {
+                rate = 4.0; // Запасний курс
             }
         }
 
@@ -109,42 +151,72 @@
             plnValue: parseFloat((amount * rate).toFixed(2))
         };
 
-        // Відправка в Google Sheets
-        await fetch(CLOUD_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify(newTx)
-        });
-
-        userHistory.push(newTx);
-        updateUI();
-        btn.disabled = false; btn.innerText = "Dodaj i Zapisz w Chmurze";
+        // Відправка в Google Таблицю
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Важливо для Google Scripts
+                body: JSON.stringify(newTx)
+            });
+            
+            transactions.push(newTx);
+            updateUI();
+            document.getElementById('amount').value = '';
+            alert("Zapisano pomyślnie!");
+        } catch (e) {
+            alert("Błąd zapisu!");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Dodaj i Zapisz w Google Sheets";
+        }
     }
 
+    // 3. Оновлення таблиць на екрані
     function updateUI() {
         const summaryTbody = document.getElementById('summary-table');
         const historyTbody = document.getElementById('history-table');
-        summaryTbody.innerHTML = ''; historyTbody.innerHTML = '';
+        summaryTbody.innerHTML = '';
+        historyTbody.innerHTML = '';
 
         let yearsMap = {};
-        userHistory.forEach(t => {
+
+        // Сортуємо: нові зверху
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+            // Розрахунок підсумків
             let y = t.date.substring(0, 4);
             if (!yearsMap[y]) yearsMap[y] = { p: 0, k: 0 };
             if (t.type === 'PRZYCHÓD') yearsMap[y].p += t.plnValue;
             else yearsMap[y].k += t.plnValue;
+
+            // Рядок історії
+            historyTbody.innerHTML += `
+                <tr>
+                    <td>${t.date}</td>
+                    <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
+                    <td>${t.amount} ${t.currency}</td>
+                    <td>${t.rate}</td>
+                    <td><b>${t.plnValue.toFixed(2)}</b></td>
+                </tr>
+            `;
         });
 
-        Object.keys(yearsMap).sort().forEach(y => {
+        // Вивід підсумків по роках
+        Object.keys(yearsMap).sort().reverse().forEach(y => {
             let res = yearsMap[y].p - yearsMap[y].k;
-            summaryTbody.innerHTML += `<tr><td>${y}</td><td>${yearsMap[y].p.toFixed(2)}</td><td>${yearsMap[y].k.toFixed(2)}</td><td class="${res<0?'neg':'pos'}">${res.toFixed(2)}</td></tr>`;
-        });
-
-        userHistory.slice().reverse().forEach(t => {
-            historyTbody.innerHTML += `<tr><td>${t.date}</td><td class="${t.type==='PRZYCHÓD'?'pos':'neg'}">${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.plnValue}</td></tr>`;
+            summaryTbody.innerHTML += `
+                <tr>
+                    <td><b>${y}</b></td>
+                    <td class="pos">${yearsMap[y].p.toFixed(2)}</td>
+                    <td class="neg">${yearsMap[y].k.toFixed(2)}</td>
+                    <td class="${res < 0 ? 'neg' : 'pos'}">${res.toFixed(2)}</td>
+                </tr>
+            `;
         });
     }
 
+    // Запуск при завантаженні
     window.onload = loadData;
 </script>
+
 </body>
 </html>
