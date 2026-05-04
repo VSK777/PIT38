@@ -10,40 +10,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        /* Базові стилі */
         body { font-family: '-apple-system', sans-serif; padding: 10px; background-color: #f4f7f6; color: #333; margin: 0; }
         .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h2, h3 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
         
-        /* Форма додавання */
         .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
         .form-group { flex: 1; min-width: 140px; }
         label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccd1d9; font-size: 16px; box-sizing: border-box; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccd1d9; font-size: 16px; box-sizing: border-box; }
         
-        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px 0; }
+        .btn-main { width: 100%; background-color: #3498db; color: white; border: none; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px 0; }
         .btn-danger { background-color: #e74c3c; padding: 8px 12px; font-size: 12px; color: white; border: none; border-radius: 6px; cursor: pointer; }
         
-        /* Кнопки iCloud */
-        .backup-section { display: flex; gap: 8px; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px dashed #ccd1d9; }
-        .btn-secondary { flex: 1; background-color: #7f8c8d; color: white; border: none; padding: 10px; font-size: 12px; border-radius: 6px; cursor: pointer; }
+        .backup-section { display: flex; gap: 8px; margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 10px; border: 1px dashed #ccd1d9; }
+        .btn-secondary { flex: 1; background-color: #7f8c8d; color: white; border: none; padding: 12px; font-size: 12px; border-radius: 8px; cursor: pointer; }
 
-        /* Таблиці та адаптивність */
-        .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd; }
-        table { width: 100%; border-collapse: collapse; background: white; min-width: 600px; /* Гарантує, що таблиця не стиснеться в кашу */ }
-        th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #eee; font-size: 13px; }
-        th { background-color: #f8f9fa; font-weight: 700; color: #7f8c8d; text-transform: uppercase; font-size: 11px; }
+        .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; border-radius: 10px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 700px; }
+        th, td { padding: 12px 10px; text-align: center; border-bottom: 1px solid #f2f2f2; font-size: 13px; }
+        th { background-color: #fcfcfc; font-weight: 700; color: #7f8c8d; text-transform: uppercase; font-size: 11px; }
         
         .pos { color: #2ecc71; font-weight: bold; }
         .neg { color: #e74c3c; font-weight: bold; }
 
-        /* Мобільні налаштування */
         @media (max-width: 600px) {
-            body { padding: 5px; }
-            .container { padding: 15px; border-radius: 0; }
-            .form-group { min-width: 100%; } /* Поля в стовпчик на мобілці */
-            th, td { padding: 8px 4px; font-size: 12px; }
-            .btn-main { padding: 12px; }
+            .form-group { min-width: 100%; }
+            .container { border-radius: 0; padding: 15px; }
+            h2 { font-size: 20px; }
         }
     </style>
 </head>
@@ -52,13 +45,12 @@
 <div class="container">
     <h2>PIT-38 Crypto Pro</h2>
     
-    <!-- Форма додавання -->
     <div class="form-row">
         <div class="form-group">
             <label>Typ:</label>
             <select id="type">
-                <option value="KOSZT">KOSZT</option>
-                <option value="PRZYCHÓD">PRZYCHÓD</option>
+                <option value="KOSZT">KOSZT (Wydatki)</option>
+                <option value="PRZYCHÓD">PRZYCHÓD (Sprzedaż)</option>
             </select>
         </div>
         <div class="form-group">
@@ -82,16 +74,23 @@
     <button onclick="addTransaction()" id="addBtn" class="btn-main">Dodaj transakcję</button>
 
     <div class="backup-section">
-        <button onclick="exportData()" class="btn-secondary">📤 Eksportuj</button>
-        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Importuj</button>
+        <button onclick="exportData()" class="btn-secondary">📤 Eksportuj (iCloud)</button>
+        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Importuj (iCloud)</button>
         <input type="file" id="importFile" style="display:none" onchange="importData(event)">
     </div>
 
-    <h3>Podsumowanie roczne</h3>
+    <h3>Podsumowanie roczne (PIT-38)</h3>
     <div class="table-container">
         <table>
             <thead>
-                <tr><th>Rok</th><th>Przychod</th><th>Koszt</th><th>Dochód</th><th>Podatek</th></tr>
+                <tr>
+                    <th>Rok</th>
+                    <th>Przychody</th>
+                    <th>Koszty</th>
+                    <th style="color: #e67e22;">Koszty lat ub.</th>
+                    <th>DOCHÓD</th>
+                    <th>Podatek (19%)</th>
+                </tr>
             </thead>
             <tbody id="yearly-summary-table"></tbody>
         </table>
@@ -99,13 +98,20 @@
 
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 30px;">
         <h3 style="margin: 0;">Historia</h3>
-        <select id="yearFilter" onchange="updateUI()" style="width: 120px; font-size: 12px; padding: 5px;"></select>
+        <select id="yearFilter" onchange="updateUI()" style="width: 130px; font-size: 12px; padding: 6px;"></select>
     </div>
 
     <div class="table-container">
         <table>
             <thead>
-                <tr><th>Data</th><th>Typ</th><th>Kwota</th><th>Kurs</th><th>PLN</th><th>Akcja</th></tr>
+                <tr>
+                    <th>Data</th>
+                    <th>Typ</th>
+                    <th>Kwota</th>
+                    <th>Kurs NBP</th>
+                    <th>Wartość (PLN)</th>
+                    <th>Akcja</th>
+                </tr>
             </thead>
             <tbody id="history-table"></tbody>
         </table>
@@ -113,7 +119,7 @@
 </div>
 
 <script>
-    const STORAGE_KEY = 'pit38_v5_final';
+    const STORAGE_KEY = 'pit38_v5_final_responsive';
     let userHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
     async function getNBPRate(currency, dateStr) {
@@ -141,23 +147,30 @@
         const type = document.getElementById('type').value;
         if (!amount || !dateVal) return;
 
-        document.getElementById('addBtn').innerText = "Pobieram курс...";
+        const btn = document.getElementById('addBtn');
+        btn.innerText = "Pobieram курс..."; btn.disabled = true;
+        
         const rateData = await getNBPRate(currency, dateVal);
         
         if (rateData) {
             userHistory.push({
-                id: "id_" + Date.now(), date: dateVal, type, currency, amount,
-                rate: rateData.rate, plnValue: parseFloat((amount * rateData.rate).toFixed(2))
+                id: "id_" + Date.now(),
+                date: dateVal,
+                type: type,
+                currency: currency,
+                amount: amount,
+                rate: rateData.rate,
+                plnValue: parseFloat((amount * rateData.rate).toFixed(2))
             });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
             document.getElementById('amount').value = '';
         }
-        document.getElementById('addBtn').innerText = "Dodaj transakcję";
+        btn.innerText = "Dodaj transakcję"; btn.disabled = false;
     }
 
     function deleteTransaction(id) {
-        if (confirm("Usunąć?")) {
+        if (confirm("Usunąć tę transakcję?")) {
             userHistory = userHistory.filter(t => t.id != id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
             updateUI();
@@ -170,7 +183,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "crypto_history.json";
+        link.download = `pit38_data_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
     }
 
@@ -182,11 +195,15 @@
             try {
                 const imported = JSON.parse(e.target.result);
                 if (Array.isArray(imported)) {
-                    userHistory = [...userHistory, ...imported.filter(n => !userHistory.find(o => o.id == n.id))];
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
-                    updateUI();
+                    if (confirm("Zaimprować dane? (Duplikaty zostaną pominięte)")) {
+                        const existingIds = userHistory.map(t => String(t.id));
+                        const newEntries = imported.filter(t => !existingIds.includes(String(t.id)));
+                        userHistory = [...userHistory, ...newEntries];
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(userHistory));
+                        updateUI();
+                    }
                 }
-            } catch (err) { alert("Błąd pliku"); }
+            } catch (err) { alert("Błąd formatu pliku."); }
         };
         reader.readAsText(file);
     }
@@ -194,6 +211,7 @@
     function updateUI() {
         const summaryTbody = document.getElementById('yearly-summary-table');
         summaryTbody.innerHTML = '';
+        
         let yearsMap = {};
         userHistory.forEach(t => {
             let y = t.date.substring(0, 4);
@@ -203,26 +221,51 @@
         });
 
         let sortedYears = Object.keys(yearsMap).sort();
-        let lossCF = 0;
+        let cumulativeLoss = 0; // Накопичений збиток (Koszty lat ub.)
+
         sortedYears.forEach(year => {
-            let p = yearsMap[year].income, k = yearsMap[year].cost;
-            let result = p - k - lossCF;
-            summaryTbody.innerHTML += `<tr><td><b>${year}</b></td><td>${p.toFixed(2)}</td><td>${k.toFixed(2)}</td><td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td><td>${(result > 0 ? result * 0.19 : 0).toFixed(2)}</td></tr>`;
-            lossCF = result < 0 ? Math.abs(result) : 0;
+            let p = yearsMap[year].income;
+            let k = yearsMap[year].cost;
+            let result = p - k - cumulativeLoss;
+            let tax = result > 0 ? (result * 0.19) : 0;
+            
+            summaryTbody.innerHTML += `
+                <tr>
+                    <td><b>${year}</b></td>
+                    <td>${p.toFixed(2)}</td>
+                    <td>${k.toFixed(2)}</td>
+                    <td style="color: #e67e22;">${cumulativeLoss.toFixed(2)}</td>
+                    <td class="${result < 0 ? 'neg' : 'pos'}">${result.toFixed(2)}</td>
+                    <td>${tax.toFixed(2)}</td>
+                </tr>
+            `;
+            // Якщо результат від'ємний, він стає базою для Koszty lat ub. наступного року
+            cumulativeLoss = result < 0 ? Math.abs(result) : 0;
         });
 
         const filterSelect = document.getElementById('yearFilter');
         const currentFilter = filterSelect.value || 'all';
-        filterSelect.innerHTML = '<option value="all">Wszystkie</option>';
+        filterSelect.innerHTML = '<option value="all">Wszystkie lata</option>';
         sortedYears.forEach(y => filterSelect.innerHTML += `<option value="${y}" ${y === currentFilter ? 'selected' : ''}>${y}</option>`);
 
         const historyTbody = document.getElementById('history-table');
         historyTbody.innerHTML = '';
         const filtered = currentFilter === 'all' ? userHistory : userHistory.filter(t => t.date.startsWith(currentFilter));
+        
         filtered.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-            historyTbody.innerHTML += `<tr><td>${t.date}</td><td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td><td>${t.amount} ${t.currency}</td><td>${t.rate}</td><td><b>${t.plnValue.toFixed(2)}</b></td><td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td></tr>`;
+            historyTbody.innerHTML += `
+                <tr>
+                    <td>${t.date}</td>
+                    <td class="${t.type === 'PRZYCHÓD' ? 'pos' : 'neg'}">${t.type}</td>
+                    <td>${t.amount} ${t.currency}</td>
+                    <td>${t.rate.toFixed(4)}</td>
+                    <td><b>${t.plnValue.toFixed(2)}</b></td>
+                    <td><button class="btn-danger" onclick="deleteTransaction('${t.id}')">Usuń</button></td>
+                </tr>
+            `;
         });
     }
+
     window.onload = updateUI;
 </script>
 </body>
